@@ -24,31 +24,11 @@ function productoExistente(req, res, next) {
       if (!productoRepetido) {
         next();
       } else {
-        res.status(404);
+        res.status(400);
         res.send("Error, producto repetido");
       }
     });
 }
-
-/*function idExistente(req, res, next) {
-  const id = req.params.idProducto;
-  sequelize
-    .query(
-      "SELECT * FROM productos WHERE ID = ?",
-      { replacements: [id] },
-      { type: sequelize.QueryTypes.SELECT }
-    )
-    .then(function (resultado) {
-      if (resultado != und) {
-        if ((resultado[0][0].ID = id)) {
-          next();
-        }
-      } else {
-        res.status(404);
-        res.send("Error, producto no encontrado");
-      }
-    });
-}*/
 
 function idExistente(req, res, next) {
   const id = req.params.idProducto;
@@ -76,7 +56,7 @@ function validarUsuarioContraseña(req, res, next) {
           fila.Contraseña === usuarioIngresado.contraseña
       );
       if (!usuarioValidado) {
-        res.status(404);
+        res.status(400);
         res.send("Error, usuario o contraseña incorrectos");
       } else {
         next();
@@ -97,7 +77,7 @@ function usuarioRepetido(req, res, next) {
           fila.Correo_electronico === usuario.correoElectronico
       );
       if (usuarioRepetido) {
-        res.status(404);
+        res.status(400);
         res.send("Error, usuario ya existente");
       } else {
         next();
@@ -120,7 +100,7 @@ function esAdmin(req, res, next) {
         if (resultado[0][0].Tipo_usuario === "admin") {
           next();
         } else {
-          res.status(400);
+          res.status(401);
           res.send("Acceso denegado");
         }
       });
@@ -141,15 +121,14 @@ function verificarDatos(req, res, next) {
         pedido.Forma_de_pago != "Tarjeta de credito" &&
         pedido.Forma_de_pago != "Tarjeta de debito"
       ) {
-        console.log("Error, forma de pago incorrecta");
-      } else {
-        console.log(pedido.Forma_de_pago);
+        res.status(400);
+        res.send("Error, forma de pago incorrecta");
       }
       if (!pedido.Direccion) {
-        console.log("Error, ingrese alguna direccion");
+        res.status(400);
+        res.send("Error, ingrese alguna direccion");
       } else {
         next();
-        console.log(pedido.Direccion);
       }
     });
 }
@@ -175,7 +154,8 @@ function verificarProductos(req, res, next) {
       if (pedidoCorrecto) {
         next();
       } else {
-        console.log("Error");
+        res.status(404);
+        res.send("Error, producto no encontrado");
       }
     });
 }
@@ -189,6 +169,7 @@ function usuarioLogueado(req, res, next) {
       next();
     }
   } else {
+    res.status(401);
     res.send("Error, usuario debe estar logueado");
   }
 }
@@ -214,6 +195,7 @@ function accesoAPedido(req, res, next) {
             if (resultado[0][0].Tipo_usuario === "admin") {
               next();
             } else {
+              res.status(401);
               res.send("Acceso denegado");
             }
           });
@@ -246,6 +228,7 @@ app.get("/productos/:idProducto", usuarioLogueado, idExistente, (req, res) => {
       { type: sequelize.QueryTypes.SELECT }
     )
     .then(function (resultado) {
+      res.status(200);
       res.send(resultado);
     });
 });
@@ -257,7 +240,7 @@ app.post("/productos", esAdmin, productoExistente, (req, res) => {
       replacements: [productoNuevo.nombre, productoNuevo.precio],
     })
     .then(function (resultado) {
-      res.status(200);
+      res.status(201);
       res.send("Producto agregado exitosamente");
       console.log(resultado);
     });
@@ -271,6 +254,7 @@ app.put("/productos/:idProducto", esAdmin, productoExistente, (req, res) => {
       replacements: [nombre, precio, id],
     })
     .then(function (resultado) {
+      res.status(200);
       res.send("Producto actualizado");
     });
 });
@@ -304,7 +288,7 @@ app.post("/join", usuarioRepetido, (req, res) => {
       }
     )
     .then(function (resultado) {
-      res.status(200);
+      res.status(201);
       res.send("Usuario creado exitosamente");
     });
 });
@@ -312,8 +296,9 @@ app.post("/join", usuarioRepetido, (req, res) => {
 app.post("/login", validarUsuarioContraseña, (req, res) => {
   const usuario = req.body;
   const token = jwt.sign(usuario.nombreUsuario, "1234");
+  res.status(200);
+  res.send("Bienvenido" + " " + usuario.nombreUsuario);
   res.json({ token });
-  console.log(usuario.nombreUsuario);
 });
 
 //PEDIDOS
@@ -348,7 +333,7 @@ app.post(
             }
           )
           .then(function (resultado) {
-            res.status(200);
+            res.status(201);
             res.send("Pedido confirmado" + " " + descodificado);
           });
       });
@@ -384,7 +369,7 @@ app.get("/pedidos/:idUsuario", accesoAPedido, (req, res) => {
         res.status(200);
         res.send(resultado);
       } else {
-        res.status(200);
+        res.status(204);
         res.send("El usuario no ha realizado ningun pedido");
       }
     });
@@ -398,6 +383,7 @@ app.put("/pedidos/estado/:idPedido", esAdmin, (req, res) => {
       replacements: [estado, id],
     })
     .then(function (resultado) {
+      res.send(200);
       res.send("Pedido actualizado exitosamente");
     });
 });
@@ -411,6 +397,7 @@ app.put("/pedidos/:idPedido", esAdmin, (req, res) => {
       { replacements: [detalle, total, forma_de_pago, direccion, id] }
     )
     .then(function (resultado) {
+      res.send(200);
       res.send("Pedido actualizado exitosamente");
     });
 });
@@ -420,6 +407,7 @@ app.delete("/pedidos/:idPedido", esAdmin, (req, res) => {
   sequelize
     .query("DELETE FROM Pedidos WHERE id = ?", { replacements: [id] })
     .then(function (resultado) {
+      res.send(200);
       res.send("Pedido eliminado exitosamente");
     });
 });
@@ -428,6 +416,7 @@ app.get("/pedidos", esAdmin, (req, res) => {
   sequelize
     .query("SELECT * FROM pedidos", { type: sequelize.QueryTypes.SELECT })
     .then(function (resultado) {
+      res.send(200);
       res.send(resultado);
     });
 });
