@@ -383,7 +383,7 @@ app.put("/pedidos/estado/:idPedido", esAdmin, (req, res) => {
       replacements: [estado, id],
     })
     .then(function (resultado) {
-      res.send(200);
+      res.status(200);
       res.send("Pedido actualizado exitosamente");
     });
 });
@@ -397,7 +397,7 @@ app.put("/pedidos/:idPedido", esAdmin, (req, res) => {
       { replacements: [detalle, total, forma_de_pago, direccion, id] }
     )
     .then(function (resultado) {
-      res.send(200);
+      res.status(200);
       res.send("Pedido actualizado exitosamente");
     });
 });
@@ -407,7 +407,7 @@ app.delete("/pedidos/:idPedido", esAdmin, (req, res) => {
   sequelize
     .query("DELETE FROM Pedidos WHERE id = ?", { replacements: [id] })
     .then(function (resultado) {
-      res.send(200);
+      res.status(200);
       res.send("Pedido eliminado exitosamente");
     });
 });
@@ -416,7 +416,7 @@ app.get("/pedidos", esAdmin, (req, res) => {
   sequelize
     .query("SELECT * FROM pedidos", { type: sequelize.QueryTypes.SELECT })
     .then(function (resultado) {
-      res.send(200);
+      res.status(200);
       res.send(resultado);
     });
 });
