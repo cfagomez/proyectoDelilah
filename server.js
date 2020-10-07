@@ -297,8 +297,9 @@ app.post("/login", validarUsuarioContraseña, (req, res) => {
   const usuario = req.body;
   const token = jwt.sign(usuario.nombreUsuario, "1234");
   res.status(200);
-  res.send("Bienvenido" + " " + usuario.nombreUsuario);
-  res.json({ token });
+  res.send(
+    "Bienvenido" + " " + usuario.nombreUsuario + " " + "-->" + " " + token
+  );
 });
 
 //PEDIDOS
