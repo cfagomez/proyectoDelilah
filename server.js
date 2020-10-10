@@ -311,9 +311,9 @@ app.post(
   verificarDatos,
   (req, res) => {
     const pedido = req.body;
-    const arrayProductosToString = pedido.Producto.toString();
     const token = req.headers.authorization.split(" ")[1];
     const descodificado = jwt.verify(token, "1234");
+
     sequelize
       .query(
         "SELECT ID FROM usuarios WHERE Usuario = ?",
@@ -323,10 +323,9 @@ app.post(
       .then(function (resultado) {
         sequelize
           .query(
-            "INSERT INTO pedidos (ID, Detalle, Forma_de_pago, Direccion, ID_usuario) VALUES (NULL, ?, ?, ?, ?)",
+            "INSERT INTO pedidos (ID, Forma_de_pago, Direccion, ID_usuario) VALUES (NULL, ?, ?, ?)",
             {
               replacements: [
-                arrayProductosToString,
                 pedido.Forma_de_pago,
                 pedido.Direccion,
                 resultado[0][0].ID,
@@ -338,22 +337,50 @@ app.post(
             res.send("Pedido confirmado" + " " + descodificado);
           });
       });
-    /*sequelize
-    .query(
-      "SELECT Precio FROM productos WHERE Nombre = ?",
-      { replacements: [pedido.Producto[0]] },
-      { type: sequelize.QueryTypes.SELECT }
-    )
-    .then(function (resultado) {
-      console.log(resultado[0][0].Precio);
-      sequelize
-        .query("UPDATE pedidos SET Total = ? WHERE Detalle = ?", {
-          replacements: [resultado[0][0].Precio, pedido.Producto],
-        })
-        .then(function (resultado) {
-          console.log("funciono");
+    sequelize
+      .query("SELECT ID FROM pedidos", { type: sequelize.QueryTypes.SELECT })
+      .then(function (resultado) {
+        const idPedido = resultado[resultado.length - 1];
+        const productosPedido = pedido.Producto;
+        productosPedido.forEach((element) => {
+          sequelize
+            .query("SELECT ID FROM productos WHERE Nombre = ?", {
+              replacements: [element],
+            })
+            .then(function (resultado) {
+              sequelize
+                .query(
+                  "INSERT INTO pedidos_productos (pedido_ID, productos_ID) VALUES (?,?)",
+                  { replacements: [idPedido.ID + 1, resultado[0][0].ID] }
+                )
+                .then(function () {
+                  console.log("Tabla pedidos_productos actualizada");
+                });
+            });
+          const productosPedido = pedido.Producto;
+          const arrayPrecios = [];
+          const reducer = (acc, cur) => acc + cur;
+          productosPedido.forEach((element) => {
+            sequelize
+              .query(
+                "SELECT Precio FROM productos WHERE Nombre = ?",
+                { replacements: [element] },
+                { type: sequelize.QueryTypes.SELECT }
+              )
+              .then(function (resultado) {
+                arrayPrecios.push(resultado[0][0].Precio);
+                const total = arrayPrecios.reduce(reducer);
+                sequelize
+                  .query("UPDATE pedidos SET Total = ? WHERE ID = ?", {
+                    replacements: [total, idPedido.ID + 1],
+                  })
+                  .then(function (resultado) {
+                    console.log("Tabla pedidos actualizada");
+                  });
+              });
+          });
         });
-    });*/
+      });
   }
 );
 
