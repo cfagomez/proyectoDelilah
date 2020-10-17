@@ -203,6 +203,17 @@ function accesoAPedido(req, res, next) {
     });
 }
 
+function tipoUsuario(req, res, next) {
+  const tipoUsuario = req.body
+  if (tipoUsuario.tipo_usuario == "user" || tipoUsuario.tipo_usuario == "admin") {
+    console.log(tipoUsuario)
+    next()
+  } else {
+    res.status(400)
+    res.send("Error, tipo de usuario incorrecto")
+  }
+}
+
 //ENDPOINTS
 
 //PRODUCTOS
@@ -302,6 +313,16 @@ app.post("/login", validarUsuarioContraseña, (req, res) => {
   );
 });
 
+app.put("/tipo_usuario/:idUsuario", esAdmin, tipoUsuario, (req, res)=>{
+  const idUsuario = req.params.idUsuario
+  const tipoUsuario = req.body
+  sequelize.query("UPDATE usuarios SET Tipo_usuario = ? WHERE ID = ?", {replacements:[tipoUsuario.tipo_usuario, idUsuario]})
+  .then(function(){
+    res.status(200)
+    res.send("Tipo de usuario modificado exitosamente")
+  })
+})
+
 //PEDIDOS
 
 app.post(
@@ -311,9 +332,11 @@ app.post(
   verificarDatos,
   (req, res) => {
     const pedido = req.body;
+    const arrayProductos = pedido.Producto
     const token = req.headers.authorization.split(" ")[1];
     const descodificado = jwt.verify(token, "1234");
-
+    const arrayProductosToString = arrayProductos.toString();
+    console.log(arrayProductosToString)
     sequelize
       .query(
         "SELECT ID FROM usuarios WHERE Usuario = ?",
@@ -323,18 +346,20 @@ app.post(
       .then(function (resultado) {
         sequelize
           .query(
-            "INSERT INTO pedidos (ID, Forma_de_pago, Direccion, ID_usuario) VALUES (NULL, ?, ?, ?)",
+            "INSERT INTO pedidos (ID, Detalle, Forma_de_pago, Direccion, Estado, ID_usuario) VALUES (NULL, ?, ?, ?, ?, ?)",
             {
               replacements: [
+                arrayProductosToString,
                 pedido.Forma_de_pago,
                 pedido.Direccion,
+                "Nuevo",
                 resultado[0][0].ID,
               ],
             }
           )
           .then(function (resultado) {
             res.status(201);
-            res.send("Pedido confirmado" + " " + descodificado);
+            res.send("Pedido ingresado" + " " + descodificado);
           });
       });
     sequelize
@@ -442,9 +467,22 @@ app.delete("/pedidos/:idPedido", esAdmin, (req, res) => {
 
 app.get("/pedidos", esAdmin, (req, res) => {
   sequelize
-    .query("SELECT * FROM pedidos", { type: sequelize.QueryTypes.SELECT })
+    .query("SELECT pedidos.ID, pedidos.Detalle, pedidos.Total, pedidos.Forma_de_pago, usuarios.Usuario, pedidos.Direccion FROM usuarios JOIN pedidos ON usuarios.ID = pedidos.ID_usuario", { type: sequelize.QueryTypes.SELECT })
     .then(function (resultado) {
       res.status(200);
-      res.send(resultado);
+      res.json(resultado);
     });
 });
+
+app.get("/pedidos/id/:idPedido", esAdmin, (req, res)=>{
+  const idPedido = req.params.idPedido;
+    sequelize.query("SELECT productos.*, pedidos.ID_usuario  FROM productos JOIN pedidos_productos ON productos.ID = pedidos_productos.productos_ID JOIN pedidos ON pedidos.ID = pedidos_productos.pedido_ID WHERE pedidos.ID = ?",{replacements:[idPedido]}, { type: sequelize.QueryTypes.SELECT })
+    .then(function(resultado){
+      res.status(200)
+      res.json(resultado[0])
+    })
+  })
+
+
+
+
