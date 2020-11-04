@@ -52,7 +52,7 @@ function validarUsuarioContraseña(req, res, next) {
     .then(function (arrayUsuarios) {
       const usuarioValidado = arrayUsuarios.find(
         (fila) =>
-          fila.Usuario === usuarioIngresado.nombreUsuario &&
+          fila.Usuario === usuarioIngresado.usuario &&
           fila.Contraseña === usuarioIngresado.contraseña
       );
       if (!usuarioValidado) {
@@ -74,7 +74,7 @@ function usuarioRepetido(req, res, next) {
       const usuarioRepetido = arrayUsuarios.find(
         (fila) =>
           fila.Usuario === usuario.usuario ||
-          fila.Correo_electronico === usuario.correoElectronico
+          fila.Correo_electronico === usuario.correo_electronico
       );
       if (usuarioRepetido) {
         res.status(400);
@@ -117,14 +117,14 @@ function verificarDatos(req, res, next) {
     .query("SELECT * FROM productos", { type: sequelize.QueryTypes.SELECT })
     .then(function (resultado) {
       if (
-        pedido.Forma_de_pago != "Efectivo" &&
-        pedido.Forma_de_pago != "Tarjeta de credito" &&
-        pedido.Forma_de_pago != "Tarjeta de debito"
+        pedido.forma_de_pago != "Efectivo" &&
+        pedido.forma_de_pago != "Tarjeta de credito" &&
+        pedido.forma_de_pago != "Tarjeta de debito"
       ) {
         res.status(400);
         res.send("Error, forma de pago incorrecta");
       }
-      if (!pedido.Direccion) {
+      if (!pedido.direccion) {
         res.status(400);
         res.send("Error, ingrese alguna direccion");
       } else {
@@ -149,7 +149,7 @@ function verificarProductos(req, res, next) {
         }
       }
 
-      const pedidoCorrecto = pedido.Producto.every(productoAVerificar);
+      const pedidoCorrecto = pedido.producto.every(productoAVerificar);
 
       if (pedidoCorrecto) {
         next();
@@ -182,7 +182,7 @@ function accesoAPedido(req, res, next) {
   sequelize
     .query("SELECT Usuario FROM usuarios WHERE ID = ?", { replacements: [id] })
     .then(function (resultado) {
-      if (resultado[0][0].Usuario === descodificado) {
+      if (resultado[0][0].usuario === descodificado) {
         next();
       } else {
         sequelize
@@ -192,7 +192,7 @@ function accesoAPedido(req, res, next) {
             { type: sequelize.QueryTypes.SELECT }
           )
           .then(function (resultado) {
-            if (resultado[0][0].Tipo_usuario === "admin") {
+            if (resultado[0][0].tipo_usuario === "admin") {
               next();
             } else {
               res.status(401);
@@ -290,10 +290,10 @@ app.post("/join", usuarioRepetido, (req, res) => {
       {
         replacements: [
           usuario.usuario,
-          usuario.nombreApellido,
-          usuario.correoElectronico,
+          usuario.nombre_y_apellido,
+          usuario.correo_electronico,
           usuario.telefono,
-          usuario.direccionEnvio,
+          usuario.direccion,
           usuario.contraseña,
         ],
       }
@@ -306,10 +306,10 @@ app.post("/join", usuarioRepetido, (req, res) => {
 
 app.post("/login", validarUsuarioContraseña, (req, res) => {
   const usuario = req.body;
-  const token = jwt.sign(usuario.nombreUsuario, "1234");
+  const token = jwt.sign(usuario.usuario, "1234");
   res.status(200);
   res.send(
-    "Bienvenido" + " " + usuario.nombreUsuario + " " + "-->" + " " + token
+    "Bienvenido" + " " + usuario.usuario + " " + "-->" + " " + token
   );
 });
 
@@ -332,7 +332,7 @@ app.post(
   verificarDatos,
   (req, res) => {
     const pedido = req.body;
-    const arrayProductos = pedido.Producto
+    const arrayProductos = pedido.producto
     const token = req.headers.authorization.split(" ")[1];
     const descodificado = jwt.verify(token, "1234");
     const arrayProductosToString = arrayProductos.toString();
@@ -350,8 +350,8 @@ app.post(
             {
               replacements: [
                 arrayProductosToString,
-                pedido.Forma_de_pago,
-                pedido.Direccion,
+                pedido.forma_de_pago,
+                pedido.direccion,
                 "Nuevo",
                 resultado[0][0].ID,
               ],
@@ -366,7 +366,7 @@ app.post(
       .query("SELECT ID FROM pedidos", { type: sequelize.QueryTypes.SELECT })
       .then(function (resultado) {
         const idPedido = resultado[resultado.length - 1];
-        const productosPedido = pedido.Producto;
+        const productosPedido = pedido.producto;
         productosPedido.forEach((element) => {
           sequelize
             .query("SELECT ID FROM productos WHERE Nombre = ?", {
@@ -382,7 +382,7 @@ app.post(
                   console.log("Tabla pedidos_productos actualizada");
                 });
             });
-          const productosPedido = pedido.Producto;
+          const productosPedido = pedido.producto;
           const arrayPrecios = [];
           const reducer = (acc, cur) => acc + cur;
           productosPedido.forEach((element) => {
@@ -444,10 +444,11 @@ app.put("/pedidos/estado/:idPedido", esAdmin, (req, res) => {
 app.put("/pedidos/:idPedido", esAdmin, (req, res) => {
   const id = req.params.idPedido;
   const { detalle, total, forma_de_pago, direccion } = req.body;
+  const arrayDetalleToString = detalle.toString();
   sequelize
     .query(
       "UPDATE pedidos SET Detalle = ?, Total = ?, Forma_de_pago = ?, Direccion = ? WHERE ID = ?",
-      { replacements: [detalle, total, forma_de_pago, direccion, id] }
+      { replacements: [arrayDetalleToString, total, forma_de_pago, direccion, id] }
     )
     .then(function (resultado) {
       res.status(200);
@@ -482,7 +483,3 @@ app.get("/pedidos/id/:idPedido", esAdmin, (req, res)=>{
       res.json(resultado[0])
     })
   })
-
-
-
-
