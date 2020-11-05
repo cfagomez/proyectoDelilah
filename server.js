@@ -192,7 +192,7 @@ function accesoAPedido(req, res, next) {
             { type: sequelize.QueryTypes.SELECT }
           )
           .then(function (resultado) {
-            if (resultado[0][0].tipo_usuario === "admin") {
+            if (resultado[0][0].Tipo_usuario === "admin") {
               next();
             } else {
               res.status(401);
