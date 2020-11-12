@@ -240,7 +240,8 @@ app.get("/productos/:idProducto", usuarioLogueado, idExistente, (req, res) => {
     )
     .then(function (resultado) {
       res.status(200);
-      res.send(resultado);
+      res.send(resultado[0 ]
+        );
     });
 });
 
@@ -420,7 +421,7 @@ app.get("/pedidos/:idUsuario", accesoAPedido, (req, res) => {
     .then(function (resultado) {
       if (resultado[0].length > 0) {
         res.status(200);
-        res.send(resultado);
+        res.send(resultado[0]);
       } else {
         res.status(204);
         res.send("El usuario no ha realizado ningun pedido");
