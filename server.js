@@ -240,7 +240,7 @@ app.get("/productos/:idProducto", usuarioLogueado, idExistente, (req, res) => {
     )
     .then(function (resultado) {
       res.status(200);
-      res.send(resultado[0 ]
+      res.send(resultado[0]
         );
     });
 });
